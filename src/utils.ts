@@ -14,6 +14,7 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 
 export const validateAccount = (account: string) => {
   try {
+    console.log(account)
     return new PublicKey(account)
   } catch (err) {
     console.log(err)

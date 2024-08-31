@@ -207,8 +207,8 @@ app.post('/actions/donate', async (req, res) => {
         message: 'Transaction submitted',
         links: {
           next: {
-            href: '/actions/signature/verify?type=donate',
             type: 'post',
+            href: '/actions/signature/verify?type=donate'
           },
         },
       },
@@ -223,6 +223,8 @@ app.post('/actions/donate', async (req, res) => {
 
 app.post('/actions/signature/verify', async (req, res) => {
   try {
+    console.log("Operation Account", req.body.account)
+    console.log("Signature", req.body.signature)
     const account = validateAccount(req.body.account)
     const type = req.query.type
     const details = await validateCreateCrowdFundTransactionSignature(
