@@ -51,17 +51,17 @@ app.get('/actions.json', (req, res) => {
     rules: [
       {
         pathPattern: '/actions',
-        apiPath: '/api/actions',
+        apiPath: '/actions',
       },
     ],
   }
   res.json(response)
 })
 
-app.get('/api/actions/crowdfund/create', (req, res) => {
+app.get('/actions/crowdfund/create', (req, res) => {
   res.json(getCreateCrowdFundActionGetResponse(BASE_URL))
 })
-app.post('/api/actions/crowdfund/create', async (req, res) => {
+app.post('/actions/crowdfund/create', async (req, res) => {
   try {
     const body: ActionPostRequest = req.body
     const account = validateAccount(body.account)
@@ -90,7 +90,7 @@ app.post('/api/actions/crowdfund/create', async (req, res) => {
         message: 'Transaction submitted',
         links: {
           next: {
-            href: '/api/actions/signature/verify?type=crowdfund',
+            href: '/actions/signature/verify?type=crowdfund',
             type: 'post',
           },
         },
@@ -105,7 +105,7 @@ app.post('/api/actions/crowdfund/create', async (req, res) => {
   }
 })
 
-app.get('/api/actions/donate', async (req, res) => {
+app.get('/actions/donate', async (req, res) => {
   try {
     const crowdFundId = req.query.cId
     if (!crowdFundId) throw 'Param "cId" required'
@@ -135,7 +135,7 @@ app.get('/api/actions/donate', async (req, res) => {
     res.status(400).json({ error: err.message || 'An unknown error occurred' })
   }
 })
-app.post('/api/actions/donate', async (req, res) => {
+app.post('/actions/donate', async (req, res) => {
   try {
     let account: PublicKey
     try {
@@ -206,7 +206,7 @@ app.post('/api/actions/donate', async (req, res) => {
         message: 'Transaction submitted',
         links: {
           next: {
-            href: '/api/actions/signature/verify?type=donate',
+            href: '/actions/signature/verify?type=donate',
             type: 'post',
           },
         },
@@ -220,7 +220,7 @@ app.post('/api/actions/donate', async (req, res) => {
   }
 })
 
-app.post('/api/actions/signature/verify', async (req, res) => {
+app.post('/actions/signature/verify', async (req, res) => {
   try {
     const body: NextActionPostRequest = req.body
     const account = validateAccount(body.account)
@@ -255,7 +255,7 @@ app.post('/api/actions/signature/verify', async (req, res) => {
         label: 'Complete!',
         description:
           `You have now created a crowdfund campaign! ` +
-          `You can share the donation link for your campaign: https://dial.to/?action=solana-action:${BASE_URL}/api/actions/donate?cId=${crowdFund.id} `,
+          `You can share the donation link for your campaign: https://dial.to/?action=solana-action:${BASE_URL}/actions/donate?cId=${crowdFund.id} `,
       }
     } else if (type == 'donate') {
       const details = await validateDonateTransactionSignature(

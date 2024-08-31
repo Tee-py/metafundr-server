@@ -200,7 +200,7 @@ export const getDonateActionGetResponse = (
       actions: [
         {
           label: target <= totalRaised ? 'Target Reached' : 'Donate',
-          href: `${baseUrl}/api/actions/donate?cId=${crowdFundId}&amount={amount}&token={token}`,
+          href: `${baseUrl}/actions/donate?cId=${crowdFundId}&amount={amount}&token={token}`,
           parameters: [
             {
               name: 'amount',
@@ -234,7 +234,7 @@ export const getCreateCrowdFundActionGetResponse = (baseUrl: string) => {
       actions: [
         {
           label: 'Create Crowdfund',
-          href: `${baseUrl}/api/actions/crowdfund/create?name={name}&description={desc}&image={img}&beneficiary={ben}&target={target}&token={token}`,
+          href: `${baseUrl}/actions/crowdfund/create?name={name}&description={desc}&image={img}&beneficiary={ben}&target={target}&token={token}`,
           parameters: [
             {
               name: 'name',
