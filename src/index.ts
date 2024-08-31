@@ -42,6 +42,7 @@ const prisma = new PrismaClient()
 
 const app = express()
 app.use(express.json())
+app.use(express.text())
 app.use(actionCorsMiddleware({}))
 
 const PORT = process.env.PORT || 3000
