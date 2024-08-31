@@ -41,8 +41,8 @@ const connection = new Connection(
 const prisma = new PrismaClient()
 
 const app = express()
-app.use(express.json())
 app.use(express.text())
+app.use(express.json())
 app.use(actionCorsMiddleware({}))
 
 const PORT = process.env.PORT || 3000
@@ -224,8 +224,9 @@ app.post('/actions/donate', async (req, res) => {
 
 app.post('/actions/signature/verify', async (req, res) => {
   try {
-    console.log("Operation Account", req.body.account)
-    console.log("Signature", req.body.signature)
+    if (typeof(req.body) == 'string') {
+        req.body = JSON.parse(req.body)
+    }
     const account = validateAccount(req.body.account)
     const type = req.query.type
     const details = await validateCreateCrowdFundTransactionSignature(
