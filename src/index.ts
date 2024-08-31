@@ -5,7 +5,6 @@ import {
   ActionPostRequest,
   MEMO_PROGRAM_ID,
   ActionPostResponse,
-  NextActionPostRequest,
   CompletedAction,
   ActionsJson,
 } from '@solana/actions'
@@ -222,7 +221,7 @@ app.post('/actions/donate', async (req, res) => {
 
 app.post('/actions/signature/verify', async (req, res) => {
   try {
-    const body: NextActionPostRequest = req.body
+    const body = req.body
     const account = validateAccount(body.account)
     const type = req.query.type
     const details = await validateCreateCrowdFundTransactionSignature(
