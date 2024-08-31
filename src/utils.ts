@@ -40,7 +40,7 @@ export const validateCreateCrowdFundTransactionSignature = async (
   const memoIx = transaction?.transaction.message.instructions.filter(
     (ix) => ix.programId.toString() == MEMO_PROGRAM_ID
   )
-  if (!memoIx) throw 'Invalid signature'
+  if (memoIx.length == 0) throw 'Invalid signature'
   // @ts-ignore
   const memoData = JSON.parse(memoIx[0].parsed) as CrowdFundMemo
   return {
@@ -74,7 +74,7 @@ export const validateDonateTransactionSignature = async (
   const splTransferIx = transaction.transaction.message.instructions.filter(
     (ix) => ix.programId.equals(TOKEN_PROGRAM_ID)
   )
-  if (!memoIx) throw 'Invalid signature'
+  if (memoIx.length == 0) throw 'Invalid signature'
   let details = {
     signature,
     amount: 0,
@@ -84,7 +84,7 @@ export const validateDonateTransactionSignature = async (
     memoData: JSON.parse(memoIx[0].parsed),
   }
   //@ts-ignore
-  if (solTransferIx) {
+  if (solTransferIx.length != 0) {
     const ix = solTransferIx[0]
     // @ts-ignore
     if (ix.parsed.type != 'transfer') throw 'Invalid transaction signature'
@@ -94,7 +94,14 @@ export const validateDonateTransactionSignature = async (
     details.to = ix.parsed.info.destination
     // @ts-ignore
     details.from = ix.parsed.info.source
-  } else if (splTransferIx) {
+  } else if (splTransferIx.length != 0) {
+    const ix = splTransferIx[0]
+    // @ts-ignore
+    details.amount = ix.parsed.info.amount
+    // @ts-ignore
+    details.from = ix.parsed.info.authority
+    // @ts-ignore
+    details.to = ix.parsed.info.destination
   } else {
     throw 'Transfer txn not found'
   }

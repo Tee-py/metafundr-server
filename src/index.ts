@@ -35,7 +35,9 @@ import {
   getAssociatedTokenAddress,
 } from '@solana/spl-token'
 
-const connection = new Connection(process.env.RPC_URL || clusterApiUrl("mainnet-beta"))
+const connection = new Connection(
+  process.env.RPC_URL || clusterApiUrl('mainnet-beta')
+)
 const prisma = new PrismaClient()
 
 const app = express()
@@ -267,8 +269,18 @@ app.post('/actions/signature/verify', async (req, res) => {
         },
       })
       if (!crowdFund) throw 'crowdfund campaign not found'
-      if (details.amount == 0) throw 'Invalid donation amount'
-      if (details.to.toString() != crowdFund.beneficiary)
+      if (parseInt(details.amount.toString()) == 0)
+        throw 'Invalid donation amount'
+      if (
+        details.to.toString() != crowdFund.beneficiary &&
+        details.to.toString() !=
+          (
+            await getAssociatedTokenAddress(
+              new PublicKey(crowdFund.tokenMint),
+              new PublicKey(crowdFund.beneficiary)
+            )
+          ).toString()
+      )
         throw 'Invalid beneficiary'
       await prisma.$transaction([
         prisma.donation.create({
