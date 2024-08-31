@@ -221,12 +221,11 @@ app.post('/actions/donate', async (req, res) => {
 
 app.post('/actions/signature/verify', async (req, res) => {
   try {
-    const body = req.body
-    const account = validateAccount(body.account)
+    const account = validateAccount(req.body.account)
     const type = req.query.type
     const details = await validateCreateCrowdFundTransactionSignature(
       connection,
-      body.signature,
+      req.body.signature,
       account
     )
     let payload: CompletedAction
@@ -259,7 +258,7 @@ app.post('/actions/signature/verify', async (req, res) => {
     } else if (type == 'donate') {
       const details = await validateDonateTransactionSignature(
         connection,
-        body.signature,
+        req.body.signature,
         account
       )
       const crowdFund = await prisma.crowdFund.findUnique({

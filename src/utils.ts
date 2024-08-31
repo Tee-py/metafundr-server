@@ -16,6 +16,7 @@ export const validateAccount = (account: string) => {
   try {
     return new PublicKey(account)
   } catch (err) {
+    console.log(err)
     throw 'Invalid "account" provided'
   }
 }
