@@ -36,7 +36,7 @@ import {
   getAssociatedTokenAddress,
 } from '@solana/spl-token'
 
-const connection = new Connection(clusterApiUrl('mainnet-beta'))
+const connection = new Connection(process.env.RPC_URL || clusterApiUrl("mainnet-beta"))
 const prisma = new PrismaClient()
 
 const app = express()
