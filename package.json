@@ -4,7 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon --watch src/**/*.ts --exec ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\""
   },
   "keywords": [],
   "author": "",
@@ -12,11 +15,17 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^5.19.0",
+    "@solana/actions": "^1.6.4",
+    "@solana/spl-token": "^0.4.8",
+    "@solana/web3.js": "^1.95.3",
     "express": "^4.19.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^22.5.1",
+    "@types/prettier": "^3.0.0",
+    "nodemon": "^3.1.4",
+    "prettier": "^3.3.3",
     "prisma": "^5.19.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"

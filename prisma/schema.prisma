@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,37 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model CrowdFund {
+  id           Int      @id @default(autoincrement())
+  name         String
+  description  String   @db.Text
+  logoUrl      String   @map("logo_url")
+  beneficiary  String
+  target       BigInt
+  totalRaised  BigInt   @map("total_raised")
+  tokenMint    String   @map("token_mint")
+  mintDecimals Int      @map("mint_decimals")
+  status       Status   
+  memoTxnSig   String   @unique @map("memo_txn_sig")
+  donations    Donation[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Donation {
+  id              Int      @id @default(autoincrement())
+  crowdFund       CrowdFund @relation(fields: [crowdFundId], references: [id])
+  crowdFundId     Int @map("crowd_fund_id")
+  donor           String    
+  amount          BigInt   @map("amount")
+  txnSig          String   @unique @map("txn_sig")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum Status {
+  ACTIVE
+  COMPLETED
 }
