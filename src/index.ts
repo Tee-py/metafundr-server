@@ -34,11 +34,13 @@ import {
   createTransferInstruction,
   getAssociatedTokenAddress,
 } from '@solana/spl-token'
+import { BlinksightsClient } from 'blinksights-sdk';
 
 const connection = new Connection(
   process.env.RPC_URL || clusterApiUrl('mainnet-beta')
 )
 const prisma = new PrismaClient()
+const blinkSightClient = new BlinksightsClient(process.env.BLINK_SIGHTS_TOKEN || "")
 
 const app = express()
 app.use(express.text())
@@ -60,13 +62,16 @@ app.get('/actions.json', (req, res) => {
   res.json(response)
 })
 
-app.get('/actions/crowdfund/create', (req, res) => {
-  res.json(getCreateCrowdFundActionGetResponse(BASE_URL))
+app.get('/actions/crowdfund/create', async (req, res) => {
+  const action = getCreateCrowdFundActionGetResponse(BASE_URL)
+  const payload = await blinkSightClient.createActionGetResponseV1(req.url, action)
+  res.json(payload)
 })
 app.post('/actions/crowdfund/create', async (req, res) => {
   try {
     const body: ActionPostRequest = req.body
     const account = validateAccount(body.account)
+    blinkSightClient.trackActionV2(body.account, req.url);
 
     // @ts-ignore
     const validatedParams = validatedCreateCrowdFundQueryParams(req.query)
@@ -117,18 +122,20 @@ app.get('/actions/donate', async (req, res) => {
       },
     })
     if (!crowdFund) throw 'Campaign not found'
+    const action = getDonateActionGetResponse(
+      crowdFund.id,
+      crowdFund.target,
+      crowdFund.totalRaised,
+      crowdFund.name,
+      crowdFund.logoUrl,
+      crowdFund.description,
+      crowdFund.tokenMint,
+      crowdFund.mintDecimals,
+      BASE_URL
+    )
+    const payload = await blinkSightClient.createActionGetResponseV2(req.url, action)
     res.json(
-      getDonateActionGetResponse(
-        crowdFund.id,
-        crowdFund.target,
-        crowdFund.totalRaised,
-        crowdFund.name,
-        crowdFund.logoUrl,
-        crowdFund.description,
-        crowdFund.tokenMint,
-        crowdFund.mintDecimals,
-        BASE_URL
-      )
+      payload
     )
   } catch (err) {
     console.log(err)
@@ -145,6 +152,7 @@ app.post('/actions/donate', async (req, res) => {
     } catch (err) {
       throw 'Invalid "account" provided'
     }
+    blinkSightClient.trackActionV2(req.body.account, req.url);
     const crowdFundId = req.query.cId
     if (!crowdFundId) throw 'Param "cId" required'
     const crowdFund = await prisma.crowdFund.findUnique({
@@ -209,7 +217,7 @@ app.post('/actions/donate', async (req, res) => {
         links: {
           next: {
             type: 'post',
-            href: '/actions/signature/verify?type=donate'
+            href: '/actions/signature/verify?type=donate',
           },
         },
       },
@@ -224,10 +232,11 @@ app.post('/actions/donate', async (req, res) => {
 
 app.post('/actions/signature/verify', async (req, res) => {
   try {
-    if (typeof(req.body) == 'string') {
-        req.body = JSON.parse(req.body)
+    if (typeof req.body == 'string') {
+      req.body = JSON.parse(req.body)
     }
     const account = validateAccount(req.body.account)
+    blinkSightClient.trackActionV2(req.body.account, req.url);
     const type = req.query.type
     const details = await validateCreateCrowdFundTransactionSignature(
       connection,
@@ -259,7 +268,7 @@ app.post('/actions/signature/verify', async (req, res) => {
         label: 'Complete!',
         description:
           `You have now created a crowdfund campaign! ` +
-          `You can share the donation link for your campaign: https://dial.to/?action=solana-action:${BASE_URL}/actions/donate?cId=${crowdFund.id} `,
+          `You can share the donation link for your campaign: \nhttps://dial.to/?action=solana-action:${BASE_URL}/actions/donate?cId=${crowdFund.id} `,
       }
     } else if (type == 'donate') {
       const details = await validateDonateTransactionSignature(
@@ -310,7 +319,7 @@ app.post('/actions/signature/verify', async (req, res) => {
         icon: crowdFund.logoUrl,
         label: 'Complete!',
         description:
-          `Thank you for donating to this campaign!🎉 ` +
+          `Thank you for donating to this campaign!🎉\n` +
           `You can view your transaction signature: ${details.signature}`,
       }
     } else {

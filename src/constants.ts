@@ -6,3 +6,5 @@ export const USDC_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 export const SEND_DECIMALS = 6
 export const WSOL_DECIMALS = 9
 export const USDC_DECIMALS = 6
+export const SOL_USDC_POOL = '58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2'
+export const SOL_SEND_POOL = 'E6Aqa46tFppP4mRdpkTTza8wFBMezqfysgSxwcBy6QJV'
