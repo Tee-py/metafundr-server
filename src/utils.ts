@@ -1,6 +1,6 @@
 import { ActionGetResponse, MEMO_PROGRAM_ID } from '@solana/actions'
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js'
-import { CrowdFundMemo, Query } from './types'
+import { CrowdFundMemo, Query, SupportedToken } from './types'
 import {
   SEND_ADDRESS,
   SEND_DECIMALS,
@@ -14,7 +14,6 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 
 export const validateAccount = (account: string) => {
   try {
-    console.log(account)
     return new PublicKey(account)
   } catch (err) {
     console.log(err)
@@ -25,6 +24,7 @@ export const validateAccount = (account: string) => {
 export const validateCreateCrowdFundTransactionSignature = async (
   connection: Connection,
   signature: string,
+  data: string,
   account: PublicKey
 ) => {
   const transaction = await connection.getParsedTransaction(
@@ -43,10 +43,12 @@ export const validateCreateCrowdFundTransactionSignature = async (
   )
   if (memoIx.length == 0) throw 'Invalid signature'
   // @ts-ignore
-  const memoData = JSON.parse(memoIx[0].parsed) as CrowdFundMemo
+  if (memoIx[0].parsed != 'metafundr | create') throw 'invalid memo transaction'
+  const memoData = JSON.parse(data)
+  const validated = validateVerifyCrowdFundQueryParams(memoData) as CrowdFundMemo
   return {
     signature,
-    memoData,
+    memoData: validated
   }
 }
 
@@ -110,6 +112,11 @@ export const validateDonateTransactionSignature = async (
   return details
 }
 
+export const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 export const validatedCreateCrowdFundQueryParams = (query: Query) => {
   let beneficiary
   let tokenMint
@@ -142,7 +149,58 @@ export const validatedCreateCrowdFundQueryParams = (query: Query) => {
       throw new Error('Invalid payment token')
     }
   }
+  if (!validateEmail(query.email as string)) {
+    throw "Invalid email provided"
+  }
   return {
+    email: query.email,
+    name: query.name,
+    description: query.description,
+    image: query.image || DEFAULT_IMAGE,
+    target: query.target,
+    beneficiary,
+    tokenMint,
+    tokenDecimals,
+  }
+}
+
+export const validateVerifyCrowdFundQueryParams = (query: Query) => {
+  let beneficiary
+  let tokenMint
+  let tokenDecimals
+  if (query.beneficiary) {
+    try {
+      beneficiary = new PublicKey(query.beneficiary).toString()
+    } catch (err) {
+      throw new Error('Invalid payment address')
+    }
+  }
+  if (query.tokenMint) {
+    if (
+      ![SEND_ADDRESS, USDC_ADDRESS, WSOL_ADDRESS].includes(
+        query.tokenMint as string
+      )
+    ) {
+      throw new Error('Invalid payment token')
+    }
+    try {
+      tokenMint = new PublicKey(query.tokenMint).toString()
+      if (query.tokenMint == SEND_ADDRESS) {
+        tokenDecimals = SEND_DECIMALS
+      } else if (query.tokenMint == USDC_ADDRESS) {
+        tokenDecimals = USDC_DECIMALS
+      } else {
+        tokenDecimals = WSOL_DECIMALS
+      }
+    } catch (err) {
+      throw new Error('Invalid payment token')
+    }
+  }
+  if (!validateEmail(query.email as string)) {
+    throw "Invalid email provided"
+  }
+  return {
+    email: query.email,
     name: query.name,
     description: query.description,
     image: query.image || DEFAULT_IMAGE,
@@ -160,6 +218,12 @@ export const validateDonateParams = (query: Query) => {
     amount: parseFloat(query.amount as string),
     token: query.token,
   }
+}
+
+export const getCurrency = (mint: string) => {
+  if (mint == WSOL_ADDRESS) return SupportedToken.SOL
+  if (mint == SEND_ADDRESS) return SupportedToken.SEND
+  if (mint == USDC_ADDRESS) return SupportedToken.USDC
 }
 
 export const getDonateActionGetResponse = (
@@ -243,7 +307,7 @@ export const getCreateCrowdFundActionGetResponse = (baseUrl: string) => {
       actions: [
         {
           label: 'Create Crowdfund',
-          href: `${baseUrl}/actions/crowdfund/create?name={name}&description={desc}&image={img}&beneficiary={ben}&target={target}&token={token}`,
+          href: `${baseUrl}/actions/crowdfund/create?name={name}&description={desc}&email={email}&image={img}&beneficiary={ben}&target={target}&token={token}`,
           parameters: [
             {
               name: 'name',
@@ -274,6 +338,12 @@ export const getCreateCrowdFundActionGetResponse = (baseUrl: string) => {
               label: 'Enter target amount (10)',
               type: 'number',
               min: 1,
+              required: true,
+            },
+            {
+              name: 'email',
+              label: 'Enter email address to receive donation link',
+              type: 'text',
               required: true,
             },
             {

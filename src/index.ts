@@ -26,6 +26,7 @@ import {
   validateCreateCrowdFundTransactionSignature,
   validatedCreateCrowdFundQueryParams,
   validateDonateTransactionSignature,
+  getCurrency,
 } from './utils'
 import { PrismaClient } from '@prisma/client'
 import { CrowdFundStatus } from './types'
@@ -34,6 +35,7 @@ import {
   createTransferInstruction,
   getAssociatedTokenAddress,
 } from '@solana/spl-token'
+import { sendCreateEmail, sendTargetReachedMail } from './email'
 
 const connection = new Connection(
   process.env.RPC_URL || clusterApiUrl('mainnet-beta')
@@ -71,7 +73,7 @@ app.post('/actions/crowdfund/create', async (req, res) => {
 
     // @ts-ignore
     const validatedParams = validatedCreateCrowdFundQueryParams(req.query)
-    const memoData = Buffer.from(JSON.stringify(validatedParams), 'utf8')
+    const memoData = Buffer.from("metafundr | create", 'utf8')
 
     const transaction = new Transaction().add(
       ComputeBudgetProgram.setComputeUnitPrice({
@@ -93,7 +95,7 @@ app.post('/actions/crowdfund/create', async (req, res) => {
         message: 'Transaction submitted',
         links: {
           next: {
-            href: '/actions/signature/verify?type=crowdfund',
+            href: `/actions/signature/verify?type=crowdfund&data=${JSON.stringify(validatedParams)}`,
             type: 'post',
           },
         },
@@ -231,16 +233,18 @@ app.post('/actions/signature/verify', async (req, res) => {
     }
     const account = validateAccount(req.body.account)
     const type = req.query.type
-    const details = await validateCreateCrowdFundTransactionSignature(
-      connection,
-      req.body.signature,
-      account
-    )
     let payload: CompletedAction
     if (type == 'crowdfund') {
+      const details = await validateCreateCrowdFundTransactionSignature(
+        connection,
+        req.body.signature,
+        req.query.data as string,
+        account
+      )
       const crowdFund = await prisma.crowdFund.create({
         data: {
           name: details.memoData.name,
+          email: details.memoData.email,
           description: details.memoData.description,
           memoTxnSig: details.signature,
           logoUrl: details.memoData.image,
@@ -261,7 +265,21 @@ app.post('/actions/signature/verify', async (req, res) => {
         label: 'Complete!',
         description:
           `You have now created a crowdfund campaign! ` +
-          `You can share the donation link for your campaign: \nhttps://dial.to/?action=solana-action:${BASE_URL}/actions/donate?cId=${crowdFund.id} `,
+          `You can share the donation link for your campaign: \nhttps://dial.to/?action=solana-action:${BASE_URL}/actions/donate?cId=${crowdFund.id}`,
+      }
+      if (crowdFund.email) {
+        const formattedTarget = parseInt(crowdFund.target.toString()) / 10 ** crowdFund.mintDecimals
+        const currency = getCurrency(crowdFund.tokenMint)
+        try {
+          await sendCreateEmail(
+            crowdFund.email,
+            crowdFund.name,
+            `${formattedTarget} ${currency}`,
+            `https://dial.to/?action=solana-action:${BASE_URL}/actions/donate?cId=${crowdFund.id}`
+          )
+        } catch (error) {
+          console.log(error)
+        }
       }
     } else if (type == 'donate') {
       const details = await validateDonateTransactionSignature(
@@ -272,7 +290,7 @@ app.post('/actions/signature/verify', async (req, res) => {
       const crowdFund = await prisma.crowdFund.findUnique({
         where: {
           id: details.memoData.cId,
-        },
+        }
       })
       if (!crowdFund) throw 'crowdfund campaign not found'
       if (parseInt(details.amount.toString()) == 0)
@@ -306,6 +324,22 @@ app.post('/actions/signature/verify', async (req, res) => {
           },
         }),
       ])
+      if (crowdFund.email && crowdFund.totalRaised + BigInt(details.amount) >= crowdFund.target) {
+        const formattedTarget = parseInt(crowdFund.target.toString()) / 10 ** crowdFund.mintDecimals
+        const formattedTotalRaised = parseInt((crowdFund.totalRaised + BigInt(details.amount)).toString()) / 10 ** crowdFund.mintDecimals
+        const currency = getCurrency(crowdFund.tokenMint)
+        try {
+          await sendTargetReachedMail(
+            crowdFund.email,
+            crowdFund.name,
+            `${formattedTarget} ${currency}`,
+            `${formattedTotalRaised} ${currency}`,
+            `https://dial.to/?action=solana-action:${BASE_URL}/actions/donate?cId=${crowdFund.id}`
+          )
+        } catch (error) {
+          console.log(error)
+        }
+      }
       payload = {
         type: 'completed',
         title: 'Donation successful!',

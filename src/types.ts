@@ -1,4 +1,5 @@
 export interface CrowdFundMemo {
+  email: string,
   name: string
   description: string
   image: string
