@@ -19,7 +19,6 @@
     "@solana/actions": "^1.6.4",
     "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.95.3",
-    "blinksights-sdk": "^1.0.13",
     "express": "^4.19.2"
   },
   "devDependencies": {

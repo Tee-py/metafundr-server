@@ -34,13 +34,11 @@ import {
   createTransferInstruction,
   getAssociatedTokenAddress,
 } from '@solana/spl-token'
-import { BlinksightsClient } from 'blinksights-sdk';
 
 const connection = new Connection(
   process.env.RPC_URL || clusterApiUrl('mainnet-beta')
 )
 const prisma = new PrismaClient()
-const blinkSightClient = new BlinksightsClient(process.env.BLINK_SIGHTS_TOKEN || "")
 
 const app = express()
 app.use(express.text())
@@ -64,14 +62,12 @@ app.get('/actions.json', (req, res) => {
 
 app.get('/actions/crowdfund/create', async (req, res) => {
   const action = getCreateCrowdFundActionGetResponse(BASE_URL)
-  const payload = await blinkSightClient.createActionGetResponseV1(req.url, action)
-  res.json(payload)
+  res.json(action)
 })
 app.post('/actions/crowdfund/create', async (req, res) => {
   try {
     const body: ActionPostRequest = req.body
     const account = validateAccount(body.account)
-    blinkSightClient.trackActionV2(body.account, req.url);
 
     // @ts-ignore
     const validatedParams = validatedCreateCrowdFundQueryParams(req.query)
@@ -133,9 +129,8 @@ app.get('/actions/donate', async (req, res) => {
       crowdFund.mintDecimals,
       BASE_URL
     )
-    const payload = await blinkSightClient.createActionGetResponseV2(req.url, action)
     res.json(
-      payload
+      action
     )
   } catch (err) {
     console.log(err)
@@ -152,7 +147,6 @@ app.post('/actions/donate', async (req, res) => {
     } catch (err) {
       throw 'Invalid "account" provided'
     }
-    blinkSightClient.trackActionV2(req.body.account, req.url);
     const crowdFundId = req.query.cId
     if (!crowdFundId) throw 'Param "cId" required'
     const crowdFund = await prisma.crowdFund.findUnique({
@@ -236,7 +230,6 @@ app.post('/actions/signature/verify', async (req, res) => {
       req.body = JSON.parse(req.body)
     }
     const account = validateAccount(req.body.account)
-    blinkSightClient.trackActionV2(req.body.account, req.url);
     const type = req.query.type
     const details = await validateCreateCrowdFundTransactionSignature(
       connection,
