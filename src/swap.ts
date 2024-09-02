@@ -192,16 +192,6 @@ const makeSwapInstruction = async (
         ASSOCIATED_TOKEN_PROGRAM_ID
     ))
   }
-//   const swapIx = Liquidity.makeSwapFixedOutInstruction({
-//     poolKeys,
-//     userKeys: {
-//         tokenAccountIn: tokenInAccount,
-//         tokenAccountOut: tokenOutAccount,
-//         owner: keyPair.publicKey
-//     },
-//     maxAmountIn: maxAmountIn.raw,
-//     amountOut: amountOut.raw
-//   }, 4)
   const swapIx = new TransactionInstruction({
     programId: new PublicKey(poolKeys.programId),
     keys: [
